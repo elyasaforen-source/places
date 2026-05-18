@@ -2,4 +2,4 @@
 // You'll find them in: Supabase dashboard → Project Settings → API
 
 const SUPABASE_URL = 'https://nbckyrwjwltnjoovhgvy.supabase.co';       // e.g. https://abcdefgh.supabase.co
-const SUPABASE_ANON_KEY = 'Ysb_publishable_jR9vbuTS2NVnT86mfw0idw_JvsxP34JOUR_SUPABASE_ANON_KEY';  // starts with eyJ...
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iY2t5cndqd2x0bmpvb3ZoZ3Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwODM1MjMsImV4cCI6MjA5NDY1OTUyM30.w2r_MLFnUSun4Ahsn69I14VQsl--EFqbS7fBaI4I3hk';
