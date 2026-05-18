@@ -1,8 +1,27 @@
-// This service worker unregisters itself and clears all old caches.
-// The app works fine without it — Vercel serves fresh files on every load.
+const CACHE = 'places-v7';
+
 self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', async () => {
-  const keys = await caches.keys();
-  await Promise.all(keys.map(k => caches.delete(k)));
-  await self.clients.claim();
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+// Network-first for same-origin files; cache as fallback when offline
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  if (!e.request.url.startsWith(self.location.origin)) return;
+
+  e.respondWith(
+    fetch(e.request, { cache: 'reload' })
+      .then(res => {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return res;
+      })
+      .catch(() => caches.match(e.request))
+  );
 });
