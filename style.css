@@ -1125,6 +1125,31 @@ html, body {
 .settings-cat-icon { font-size: 20px; }
 .settings-cat-name { flex: 1; font-size: 15px; font-weight: 600; color: var(--c-on-surface); }
 
+.cat-drag-handle {
+  font-size: 20px;
+  color: var(--c-secondary);
+  opacity: 0.45;
+  cursor: grab;
+  flex-shrink: 0;
+  touch-action: none;
+}
+.cat-drag-handle:active { cursor: grabbing; }
+
+.cat-delete-btn {
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: transparent;
+  color: var(--c-secondary);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0.45;
+  flex-shrink: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+.cat-delete-btn:active { opacity: 1; color: var(--c-error); background: var(--c-error-bg); }
+.cat-delete-btn .material-symbols-outlined { font-size: 18px; }
+
 .settings-action-btn {
   margin-top: 12px;
   background: var(--c-surface-3);

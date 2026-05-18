@@ -79,6 +79,17 @@ async function loadData() {
   S.places     = pr.data || [];
   S.categories = cr.data || [];
   if (!S.categories.length) await seedCategories();
+
+  const savedOrder = JSON.parse(localStorage.getItem('cat-order') || '[]');
+  if (savedOrder.length) {
+    S.categories.sort((a, b) => {
+      const ai = savedOrder.indexOf(String(a.id));
+      const bi = savedOrder.indexOf(String(b.id));
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+  }
 }
 
 async function seedCategories() {
@@ -729,14 +740,57 @@ function renderStats() {
     </div>` : ''}`;
 }
 
+let _catSortable = null;
+
 function renderSettingsCats() {
   renderStats();
-  document.getElementById('settings-cats').innerHTML = S.categories.map(c => `
-    <div class="settings-cat-row">
+  const el = document.getElementById('settings-cats');
+  el.innerHTML = S.categories.map(c => `
+    <div class="settings-cat-row" data-id="${c.id}">
+      <span class="material-symbols-outlined cat-drag-handle">drag_indicator</span>
       <span class="settings-cat-dot" style="background:${c.color}"></span>
       <span class="settings-cat-icon">${c.icon}</span>
       <span class="settings-cat-name">${c.name}</span>
+      <button class="cat-delete-btn" onclick="deleteCategory('${c.id}')">
+        <span class="material-symbols-outlined">delete</span>
+      </button>
     </div>`).join('');
+
+  if (_catSortable) { _catSortable.destroy(); _catSortable = null; }
+  if (typeof Sortable !== 'undefined') {
+    _catSortable = new Sortable(el, {
+      animation: 200,
+      handle: '.cat-drag-handle',
+      draggable: '.settings-cat-row',
+      ghostClass: 'card-drag-ghost',
+      onEnd() {
+        const newOrder = [...el.querySelectorAll('.settings-cat-row')].map(r => r.dataset.id);
+        S.categories.sort((a, b) => newOrder.indexOf(String(a.id)) - newOrder.indexOf(String(b.id)));
+        localStorage.setItem('cat-order', JSON.stringify(newOrder));
+        renderCatPicker();
+      },
+    });
+  }
+}
+
+async function deleteCategory(id) {
+  const cat = S.categories.find(c => String(c.id) === String(id));
+  if (!cat) return;
+
+  const inUse = S.places.some(p => String(p.category_id) === String(id));
+  const msg = inUse
+    ? `Delete "${cat.name}"? Places using it will become uncategorized.`
+    : `Delete "${cat.name}"?`;
+  if (!confirm(msg)) return;
+
+  const { error } = await db.from('categories').delete().eq('id', id);
+  if (error) { toast('Error deleting category'); return; }
+
+  S.categories = S.categories.filter(c => String(c.id) !== String(id));
+  if (S.selectedCatId === id) S.selectedCatId = null;
+  renderSettingsCats();
+  renderCatPicker();
+  toast(`"${cat.name}" deleted`);
 }
 
 /* ── Category modal ───────────────────────────────────────────────────── */
