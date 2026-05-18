@@ -1,4 +1,4 @@
-const CACHE = 'places-v3';  // bump version to force-clear all old cached files
+const CACHE = 'places-v4';
 
 const SHELL = [
   '/',
