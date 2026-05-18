@@ -749,7 +749,9 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('online',  () => toast('Back online'));
 });
 
-/* ── Service worker ───────────────────────────────────────────────────── */
+/* ── Kill old service workers + their caches ─────────────────────────── */
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
+  });
 }
