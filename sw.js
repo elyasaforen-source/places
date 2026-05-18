@@ -1,4 +1,4 @@
-const CACHE = 'places-v1';
+const CACHE = 'places-v3';  // bump version to force-clear all old cached files
 
 const SHELL = [
   '/',
@@ -27,8 +27,15 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = e.request.url;
 
-  // Never intercept Supabase, Nominatim, or tile requests — always go to network
-  if (url.includes('supabase.co') || url.includes('nominatim') || url.includes('tile.openstreetmap')) return;
+  // Never intercept external APIs or tile servers — always hit the network
+  if (
+    url.includes('supabase.co') ||
+    url.includes('nominatim') ||
+    url.includes('openstreetmap') ||
+    url.includes('cartocdn.com') ||
+    url.includes('unpkg.com') ||
+    url.includes('jsdelivr.net')
+  ) return;
 
   e.respondWith(
     caches.match(e.request).then(cached => {

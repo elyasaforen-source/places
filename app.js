@@ -30,6 +30,7 @@ const S = {
   nearMeActive: false,
   userLat: null,
   userLng: null,
+  userMarker: null,
 };
 
 /* ── PIN ──────────────────────────────────────────────────────────────── */
@@ -156,13 +157,49 @@ async function seedCategories() {
 /* ── Main map ─────────────────────────────────────────────────────────── */
 function initMainMap() {
   if (S.map) { renderMarkers(); return; }
+
+  // Start with world view, then fly to user's location
   S.map = L.map('map', { zoomControl: false }).setView([20, 10], 2);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
   }).addTo(S.map);
+
   L.control.zoom({ position: 'bottomleft' }).addTo(S.map);
   renderMarkers();
+
+  // Fly to user's position on load
+  navigator.geolocation.getCurrentPosition(
+    pos => S.map.setView([pos.coords.latitude, pos.coords.longitude], 13),
+    null,
+    { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+  );
+}
+
+function locateMe() {
+  const btn = document.getElementById('locate-btn');
+  btn.classList.add('locating');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      btn.classList.remove('locating');
+      S.map.flyTo([pos.coords.latitude, pos.coords.longitude], 15, { duration: 1.2 });
+      // Show a pulse marker at user location
+      if (S.userMarker) S.userMarker.remove();
+      S.userMarker = L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
+        radius: 8,
+        fillColor: '#4ECDC4',
+        color: '#fff',
+        weight: 2,
+        fillOpacity: 0.9,
+      }).addTo(S.map);
+    },
+    () => {
+      btn.classList.remove('locating');
+      toast('Could not get your location');
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
 }
 
 function makePinIcon(cat) {
@@ -363,7 +400,7 @@ function selectSearchResult(idx) {
   if (!S.addMap) {
     S.addMap = L.map('add-map', { zoomControl: false, attributionControl: false })
       .setView([S.currentLat, S.currentLng], 15);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(S.addMap);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(S.addMap);
   } else {
     if (S.addMapMarker) S.addMapMarker.remove();
     S.addMap.setView([S.currentLat, S.currentLng], 15);
@@ -420,7 +457,7 @@ async function onGPS(pos) {
   // Mini map
   if (!S.addMap) {
     S.addMap = L.map('add-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 16);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(S.addMap);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(S.addMap);
   } else {
     S.addMap.setView([lat, lng], 16);
     if (S.addMapMarker) S.addMapMarker.remove();

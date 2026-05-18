@@ -632,6 +632,28 @@ html, body {
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* ── Locate button (inside map view) ─────────────────────────── */
+.locate-btn {
+  position: absolute;
+  bottom: 96px;
+  right: 16px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 14px rgba(0,0,0,.45);
+  transition: background 0.15s, transform 0.15s;
+}
+.locate-btn:active { transform: scale(0.9); background: var(--surface); }
+.locate-btn.locating { color: var(--accent); }
+
 /* ── Browse controls bar ──────────────────────────────────────── */
 #view-browse { display: flex; flex-direction: column; }
 
