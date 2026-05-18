@@ -118,9 +118,13 @@ function initMainMap() {
 
   S.map = L.map('map', { zoomControl: false }).setView([20, 10], 2);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', {
-    maxZoom: 19,
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 16,
+    attribution: 'Tiles &copy; Esri',
+  }).addTo(S.map);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 16,
+    attribution: '',
   }).addTo(S.map);
 
   L.control.zoom({ position: 'bottomleft' }).addTo(S.map);
@@ -411,7 +415,8 @@ function selectSearchResult(idx) {
   if (!S.addMap) {
     S.addMap = L.map('add-map', { zoomControl: false, attributionControl: false })
       .setView([S.currentLat, S.currentLng], 15);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', { maxZoom: 19 }).addTo(S.addMap);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: '' }).addTo(S.addMap);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: '' }).addTo(S.addMap);
   } else {
     if (S.addMapMarker) S.addMapMarker.remove();
     S.addMap.setView([S.currentLat, S.currentLng], 15);
@@ -468,7 +473,8 @@ async function onGPS(pos) {
   // Mini map
   if (!S.addMap) {
     S.addMap = L.map('add-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 16);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', { maxZoom: 19 }).addTo(S.addMap);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: '' }).addTo(S.addMap);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: '' }).addTo(S.addMap);
   } else {
     S.addMap.setView([lat, lng], 16);
     if (S.addMapMarker) S.addMapMarker.remove();
