@@ -10,7 +10,7 @@
   <title>Places</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 
@@ -73,7 +73,8 @@
     <div id="view-browse" class="view" style="display:none">
       <div class="browse-controls">
         <span class="browse-total" id="browse-total"></span>
-        <button class="near-me-btn" id="near-me-btn" onclick="toggleNearMe()">📍 Near me</button>
+        <button class="browse-ctrl-btn" id="near-me-btn" onclick="toggleNearMe()">📍 Near me</button>
+        <button class="browse-ctrl-btn" id="select-btn" onclick="toggleSelectMode()">Select</button>
       </div>
       <div class="browse-list" id="browse-list">
         <div class="empty-state">
@@ -238,12 +239,19 @@
     </div>
   </div>
 
+  <!-- ── Select bar ───────────────────────────────── -->
+  <div id="select-bar" class="select-bar" style="display:none">
+    <span class="select-count" id="select-count">0 selected</span>
+    <button class="select-delete-btn" id="select-delete-btn" onclick="deleteSelected()" disabled>Delete</button>
+  </div>
+
   <!-- ── Toast ──────────────────────────────────── -->
   <div id="toast" class="toast"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="config.js?v=2"></script>
-  <script src="app.js?v=2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+  <script src="config.js?v=3"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

@@ -31,6 +31,9 @@ const S = {
   userLat: null,
   userLng: null,
   userMarker: null,
+  // Select mode
+  selectMode: false,
+  selectedIds: new Set(),
 };
 
 /* ── PIN ──────────────────────────────────────────────────────────────── */
@@ -155,13 +158,19 @@ async function seedCategories() {
 }
 
 /* ── Main map ─────────────────────────────────────────────────────────── */
+function makeUserIcon() {
+  return L.divIcon({
+    html: '<div class="user-dot"><div class="user-pulse"></div></div>',
+    iconSize: [20, 20], iconAnchor: [10, 10], className: '',
+  });
+}
+
 function initMainMap() {
   if (S.map) { renderMarkers(); return; }
 
-  // Start with world view, then fly to user's location
   S.map = L.map('map', { zoomControl: false }).setView([20, 10], 2);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
   }).addTo(S.map);
@@ -169,11 +178,18 @@ function initMainMap() {
   L.control.zoom({ position: 'bottomleft' }).addTo(S.map);
   renderMarkers();
 
-  // Fly to user's position on load
-  navigator.geolocation.getCurrentPosition(
-    pos => S.map.setView([pos.coords.latitude, pos.coords.longitude], 13),
+  // Watch user position: center on first fix, update dot continuously
+  let centeredOnUser = false;
+  navigator.geolocation.watchPosition(
+    pos => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      S.userLat = lat; S.userLng = lng;
+      if (!centeredOnUser) { S.map.setView([lat, lng], 13); centeredOnUser = true; }
+      if (S.userMarker) S.userMarker.remove();
+      S.userMarker = L.marker([lat, lng], { icon: makeUserIcon(), zIndexOffset: 1000 }).addTo(S.map);
+    },
     null,
-    { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+    { enableHighAccuracy: false, maximumAge: 30000 }
   );
 }
 
@@ -183,21 +199,13 @@ function locateMe() {
   navigator.geolocation.getCurrentPosition(
     pos => {
       btn.classList.remove('locating');
-      S.map.flyTo([pos.coords.latitude, pos.coords.longitude], 15, { duration: 1.2 });
-      // Show a pulse marker at user location
+      const { latitude: lat, longitude: lng } = pos.coords;
+      S.userLat = lat; S.userLng = lng;
+      S.map.flyTo([lat, lng], 15, { duration: 1.2 });
       if (S.userMarker) S.userMarker.remove();
-      S.userMarker = L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
-        radius: 8,
-        fillColor: '#4ECDC4',
-        color: '#fff',
-        weight: 2,
-        fillOpacity: 0.9,
-      }).addTo(S.map);
+      S.userMarker = L.marker([lat, lng], { icon: makeUserIcon(), zIndexOffset: 1000 }).addTo(S.map);
     },
-    () => {
-      btn.classList.remove('locating');
-      toast('Could not get your location');
-    },
+    () => { btn.classList.remove('locating'); toast('Could not get your location'); },
     { enableHighAccuracy: true, timeout: 10000 }
   );
 }
@@ -227,69 +235,113 @@ function renderMarkers() {
 }
 
 /* ── Browse ───────────────────────────────────────────────────────────── */
+let sortableInstance = null;
+
 function renderBrowse() {
   const el      = document.getElementById('browse-list');
   const totalEl = document.getElementById('browse-total');
   if (totalEl) totalEl.textContent = `${S.places.length} place${S.places.length !== 1 ? 's' : ''}`;
 
   if (!S.places.length) {
-    el.innerHTML = `<div class="empty-state"><span>🗺️</span><p>No places saved yet</p><small>Tap + to save your first place</small></div>`;
+    el.innerHTML = `<div class="empty-state"><span>🗺️</span><p>No places yet</p><small>Tap + to save your first place</small></div>`;
     return;
   }
 
   if (S.nearMeActive && S.userLat !== null) {
-    // Flat list sorted by distance
     const sorted = [...S.places]
       .map(p => ({ ...p, _dist: haversine(S.userLat, S.userLng, p.lat, p.lng) }))
       .sort((a, b) => a._dist - b._dist);
-    el.innerHTML =
-      `<div class="near-me-label">Sorted by distance from you</div>` +
+    el.innerHTML = `<div class="near-me-label">Sorted by distance from you</div>` +
       sorted.map(p => cardHTML(p, p._dist)).join('');
+    if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
   } else {
-    // Grouped by city
+    // City-grouped with saved order
+    let savedOrder = [];
+    try { savedOrder = JSON.parse(localStorage.getItem('city_order') || '[]'); } catch {}
     const byCity = {};
     S.places.forEach(p => {
       const key = [p.city, p.country].filter(Boolean).join(', ') || 'Unknown';
       (byCity[key] = byCity[key] || []).push(p);
     });
-    el.innerHTML = Object.entries(byCity).map(([city, places]) => `
-      <div class="city-group">
+    let entries = Object.entries(byCity);
+    if (savedOrder.length) {
+      const ordered = [];
+      savedOrder.forEach(c => { const e = entries.find(([k]) => k === c); if (e) ordered.push(e); });
+      entries.forEach(e => { if (!ordered.includes(e)) ordered.push(e); });
+      entries = ordered;
+    }
+    el.innerHTML = entries.map(([city, places]) => `
+      <div class="city-group" data-city="${city.replace(/"/g, '&quot;')}">
         <div class="city-header">
+          <div class="city-drag-handle" onclick="event.stopPropagation()">⋮⋮</div>
           <span class="city-name">${city}</span>
           <span class="city-count">${places.length}</span>
         </div>
         ${places.map(p => cardHTML(p)).join('')}
       </div>`).join('');
+
+    if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
+    if (typeof Sortable !== 'undefined') {
+      sortableInstance = new Sortable(el, {
+        animation: 200,
+        handle: '.city-drag-handle',
+        draggable: '.city-group',
+        ghostClass: 'card-drag-ghost',
+        chosenClass: 'card-drag-chosen',
+        onEnd: () => {
+          const order = [...el.querySelectorAll('.city-group')].map(g => g.dataset.city);
+          localStorage.setItem('city_order', JSON.stringify(order));
+        },
+      });
+    }
   }
 
   el.querySelectorAll('[data-pid]').forEach(card =>
     card.addEventListener('click', () => {
       const p = S.places.find(x => x.id === card.dataset.pid);
-      if (p) openDetail(p);
+      if (!p) return;
+      if (S.selectMode) toggleSelect(p.id);
+      else openDetail(p);
     })
   );
 }
 
 function cardHTML(p, dist = null) {
-  const cat    = p.categories;
-  const photos = p.photos || [];
-  const date   = new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const cat      = p.categories;
+  const photos   = p.photos || [];
+  const date     = new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const distBadge = dist !== null ? `<span class="dist-badge">${formatDist(dist)}</span>` : '';
   const cityTag   = dist !== null && p.city ? `<span class="card-city-tag">· ${p.city}</span>` : '';
+  const catColor  = cat?.color || '#DDA0DD';
+  const isSelected = S.selectedIds.has(p.id);
+
+  const leftCtrl = S.selectMode
+    ? `<div class="card-checkbox ${isSelected ? 'checked' : ''}">
+         ${isSelected ? '<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="1.5,6 5,9.5 10.5,2.5"/></svg>' : ''}
+       </div>`
+    : `<div class="drag-handle" onclick="event.stopPropagation()"><span></span><span></span><span></span></div>`;
+
+  const navBtn = S.selectMode ? '' : `
+    <button class="card-nav-btn" onclick="navToPlace('${p.id}', event)" title="Navigate">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+      </svg>
+    </button>`;
+
   return `
-    <div class="place-card" data-pid="${p.id}">
-      <div class="place-card-icon">${cat?.icon || '📍'}</div>
-      <div class="place-card-body">
-        <div class="place-card-cat" style="color:${cat?.color || '#DDA0DD'}">${cat?.name || 'Other'}${cityTag}</div>
-        <div class="place-card-note">${p.note || 'No description'}</div>
-        <div class="place-card-date">${date}${distBadge}</div>
+    <div class="place-card${isSelected ? ' selected' : ''}" data-pid="${p.id}">
+      <div class="place-card-bar" style="background:${catColor}"></div>
+      ${leftCtrl}
+      <div class="place-card-inner">
+        <div class="place-card-icon">${cat?.icon || '📍'}</div>
+        <div class="place-card-body">
+          <div class="place-card-cat" style="color:${catColor}">${cat?.name || 'Other'}${cityTag}</div>
+          <div class="place-card-note">${p.note || 'No description'}</div>
+          <div class="place-card-date">${date}${distBadge}</div>
+        </div>
+        ${photos.length ? `<img class="place-card-thumb" src="${photos[0]}" loading="lazy">` : ''}
+        ${navBtn}
       </div>
-      ${photos.length ? `<img class="place-card-thumb" src="${photos[0]}" loading="lazy">` : ''}
-      <button class="card-nav-btn" onclick="navToPlace('${p.id}', event)" title="Navigate">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="3 11 22 2 13 21 11 13 3 11"/>
-        </svg>
-      </button>
     </div>`;
 }
 
@@ -405,7 +457,7 @@ function selectSearchResult(idx) {
   if (!S.addMap) {
     S.addMap = L.map('add-map', { zoomControl: false, attributionControl: false })
       .setView([S.currentLat, S.currentLng], 15);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(S.addMap);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(S.addMap);
   } else {
     if (S.addMapMarker) S.addMapMarker.remove();
     S.addMap.setView([S.currentLat, S.currentLng], 15);
@@ -462,7 +514,7 @@ async function onGPS(pos) {
   // Mini map
   if (!S.addMap) {
     S.addMap = L.map('add-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 16);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(S.addMap);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(S.addMap);
   } else {
     S.addMap.setView([lat, lng], 16);
     if (S.addMapMarker) S.addMapMarker.remove();
@@ -571,37 +623,30 @@ async function savePlace() {
   btn.textContent = 'Saving…'; btn.disabled = true;
 
   try {
-    const { data: insertedRows, error } = await db.from('places').insert({
+    const note = document.getElementById('place-note').value.trim();
+    const { data: rows, error } = await db.from('places').insert({
       lat: S.currentLat, lng: S.currentLng,
       city: S.currentCity, country: S.currentCountry,
-      note: document.getElementById('place-note').value.trim(),
-      category_id: S.selectedCatId,
-      photos: [],
-    }).select('*, categories(id,name,icon,color)');
+      note, category_id: S.selectedCatId, photos: [],
+    }).select();
 
     if (error) throw error;
-    const place = insertedRows?.[0];
-    if (!place) throw new Error('No data returned from insert');
+    const placeId = rows?.[0]?.id;
 
-    if (S.pendingPhotos.length) {
+    if (S.pendingPhotos.length && placeId) {
       toast('Uploading photos…');
       const urls = [];
-      for (const p of S.pendingPhotos) {
-        urls.push(await uploadPhoto(p.file, place.id));
-      }
-      await db.from('places').update({ photos: urls }).eq('id', place.id);
-      place.photos = urls;
+      for (const ph of S.pendingPhotos) urls.push(await uploadPhoto(ph.file, placeId));
+      await db.from('places').update({ photos: urls }).eq('id', placeId);
     }
-
-    S.places.unshift(place);
-    renderMarkers();
-    S.map?.flyTo([place.lat, place.lng], 15, { duration: 1 });
 
     closeAddPlace();
     toast('Saved ✓');
+    await loadData();
+    renderMarkers();
   } catch (err) {
     console.error(err);
-    toast('Error saving — check your connection');
+    toast('Error: ' + (err.message || 'Could not save'));
   } finally {
     btn.textContent = 'Save'; btn.disabled = false;
   }
@@ -650,6 +695,47 @@ async function deleteCurrentPlace() {
   closeDetail();
   renderBrowse();
   toast('Deleted');
+}
+
+/* ── Select mode ──────────────────────────────────────────────────────── */
+function toggleSelectMode() {
+  S.selectMode = !S.selectMode;
+  S.selectedIds = new Set();
+  const btn = document.getElementById('select-btn');
+  const bar = document.getElementById('select-bar');
+  if (btn) btn.textContent = S.selectMode ? 'Done' : 'Select';
+  if (bar) bar.style.display = S.selectMode ? 'flex' : 'none';
+  renderBrowse();
+}
+
+function toggleSelect(id) {
+  if (S.selectedIds.has(id)) S.selectedIds.delete(id);
+  else S.selectedIds.add(id);
+  const n = S.selectedIds.size;
+  const countEl = document.getElementById('select-count');
+  const delBtn  = document.getElementById('select-delete-btn');
+  if (countEl) countEl.textContent = `${n} selected`;
+  if (delBtn)  delBtn.disabled = n === 0;
+  renderBrowse();
+}
+
+async function deleteSelected() {
+  const n = S.selectedIds.size;
+  if (!n) return;
+  if (!confirm(`Delete ${n} place${n > 1 ? 's' : ''}?`)) return;
+  const ids = [...S.selectedIds];
+  for (const id of ids) {
+    await db.from('places').delete().eq('id', id);
+    S.markers[id]?.remove();
+    delete S.markers[id];
+  }
+  S.places = S.places.filter(p => !ids.includes(p.id));
+  S.selectedIds = new Set();
+  S.selectMode = false;
+  document.getElementById('select-bar').style.display = 'none';
+  document.getElementById('select-btn').textContent = 'Select';
+  renderBrowse();
+  toast(`Deleted ${n} place${n > 1 ? 's' : ''}`);
 }
 
 /* ── Settings ─────────────────────────────────────────────────────────── */
