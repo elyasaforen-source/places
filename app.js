@@ -285,6 +285,11 @@ function cardHTML(p, dist = null) {
         <div class="place-card-date">${date}${distBadge}</div>
       </div>
       ${photos.length ? `<img class="place-card-thumb" src="${photos[0]}" loading="lazy">` : ''}
+      <button class="card-nav-btn" onclick="navToPlace('${p.id}', event)" title="Navigate">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+        </svg>
+      </button>
     </div>`;
 }
 
@@ -626,7 +631,13 @@ function closeDetail() { closeOverlay('screen-detail'); }
 
 function openInMaps() {
   const p = S.places.find(x => x.id === S.activePlaceId);
-  if (p) window.open(`https://www.google.com/maps?q=${p.lat},${p.lng}`, '_blank');
+  if (p) window.open(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`, '_blank');
+}
+
+function navToPlace(id, e) {
+  e.stopPropagation();
+  const p = S.places.find(x => x.id === id);
+  if (p) window.open(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`, '_blank');
 }
 
 async function deleteCurrentPlace() {

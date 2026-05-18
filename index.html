@@ -10,7 +10,7 @@
   <title>Places</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 
@@ -187,6 +187,12 @@
         <div class="settings-section-title">Security</div>
         <button class="settings-action-btn danger" onclick="resetPIN()">Change PIN</button>
       </div>
+      <div class="settings-section">
+        <div class="settings-version-row">
+          <span class="settings-version-label">Places</span>
+          <span class="settings-version-badge">v2.0</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -237,7 +243,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+  <script src="config.js?v=2"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>
