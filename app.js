@@ -149,7 +149,10 @@ async function seedCategories() {
 function initMainMap() {
   if (S.map) { renderMarkers(); return; }
   S.map = L.map('map', { zoomControl: false }).setView([20, 10], 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(S.map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+  }).addTo(S.map);
   L.control.zoom({ position: 'bottomleft' }).addTo(S.map);
   renderMarkers();
 }
@@ -251,7 +254,7 @@ async function onGPS(pos) {
   // Mini map
   if (!S.addMap) {
     S.addMap = L.map('add-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 16);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(S.addMap);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(S.addMap);
   } else {
     S.addMap.setView([lat, lng], 16);
     if (S.addMapMarker) S.addMapMarker.remove();
@@ -360,15 +363,17 @@ async function savePlace() {
   btn.textContent = 'Saving…'; btn.disabled = true;
 
   try {
-    const { data: place, error } = await db.from('places').insert({
+    const { data: insertedRows, error } = await db.from('places').insert({
       lat: S.currentLat, lng: S.currentLng,
       city: S.currentCity, country: S.currentCountry,
       note: document.getElementById('place-note').value.trim(),
       category_id: S.selectedCatId,
       photos: [],
-    }).select('*, categories(id,name,icon,color)').single();
+    }).select('*, categories(id,name,icon,color)');
 
     if (error) throw error;
+    const place = insertedRows?.[0];
+    if (!place) throw new Error('No data returned from insert');
 
     if (S.pendingPhotos.length) {
       toast('Uploading photos…');
@@ -479,12 +484,13 @@ async function createCategory() {
 
   const { data, error } = await db.from('categories').insert({
     name, icon: S.pickedEmoji, color: S.pickedColor,
-  }).select().single();
+  }).select();
 
-  if (error) { toast('Error creating category'); return; }
+  if (error || !data?.length) { console.error(error); toast('Error creating category'); return; }
 
-  S.categories.push(data);
-  S.selectedCatId = data.id;
+  const newCat = data[0];
+  S.categories.push(newCat);
+  S.selectedCatId = newCat.id;
   closeCategoryModal();
   renderCatPicker();
   renderSettingsCats();

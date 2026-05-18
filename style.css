@@ -179,8 +179,7 @@ html, body {
 
 #map { width: 100%; height: 100%; }
 
-/* Leaflet dark */
-.leaflet-tile { filter: brightness(0.78) saturate(0.85); }
+/* Leaflet — no filter needed, CartoDB Dark Matter is already dark */
 .leaflet-popup-content-wrapper {
   background: var(--surface) !important;
   color: var(--text) !important;
