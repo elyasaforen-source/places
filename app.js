@@ -11,7 +11,7 @@ const S = {
   currentCity: '',
   currentCountry: '',
   selectedCatId: null,
-  pendingPhotos: [],     // { file, dataUrl }[]
+  pendingPhotos: [],
   activePlaceId: null,
   map: null,
   addMap: null,
@@ -22,6 +22,14 @@ const S = {
   firstPinEntry: '',
   pickedEmoji: '📍',
   pickedColor: '#FF6B6B',
+  // Search
+  addMode: 'here',
+  searchResults: [],
+  searchTimer: null,
+  // Near me
+  nearMeActive: false,
+  userLat: null,
+  userLng: null,
 };
 
 /* ── PIN ──────────────────────────────────────────────────────────────── */
@@ -183,26 +191,39 @@ function renderMarkers() {
 
 /* ── Browse ───────────────────────────────────────────────────────────── */
 function renderBrowse() {
-  const el = document.getElementById('browse-list');
+  const el      = document.getElementById('browse-list');
+  const totalEl = document.getElementById('browse-total');
+  if (totalEl) totalEl.textContent = `${S.places.length} place${S.places.length !== 1 ? 's' : ''}`;
+
   if (!S.places.length) {
     el.innerHTML = `<div class="empty-state"><span>🗺️</span><p>No places saved yet</p><small>Tap + to save your first place</small></div>`;
     return;
   }
 
-  const byCity = {};
-  S.places.forEach(p => {
-    const key = [p.city, p.country].filter(Boolean).join(', ') || 'Unknown';
-    (byCity[key] = byCity[key] || []).push(p);
-  });
-
-  el.innerHTML = Object.entries(byCity).map(([city, places]) => `
-    <div class="city-group">
-      <div class="city-header">
-        <span class="city-name">${city}</span>
-        <span class="city-count">${places.length}</span>
-      </div>
-      ${places.map(cardHTML).join('')}
-    </div>`).join('');
+  if (S.nearMeActive && S.userLat !== null) {
+    // Flat list sorted by distance
+    const sorted = [...S.places]
+      .map(p => ({ ...p, _dist: haversine(S.userLat, S.userLng, p.lat, p.lng) }))
+      .sort((a, b) => a._dist - b._dist);
+    el.innerHTML =
+      `<div class="near-me-label">Sorted by distance from you</div>` +
+      sorted.map(p => cardHTML(p, p._dist)).join('');
+  } else {
+    // Grouped by city
+    const byCity = {};
+    S.places.forEach(p => {
+      const key = [p.city, p.country].filter(Boolean).join(', ') || 'Unknown';
+      (byCity[key] = byCity[key] || []).push(p);
+    });
+    el.innerHTML = Object.entries(byCity).map(([city, places]) => `
+      <div class="city-group">
+        <div class="city-header">
+          <span class="city-name">${city}</span>
+          <span class="city-count">${places.length}</span>
+        </div>
+        ${places.map(p => cardHTML(p)).join('')}
+      </div>`).join('');
+  }
 
   el.querySelectorAll('[data-pid]').forEach(card =>
     card.addEventListener('click', () => {
@@ -212,17 +233,19 @@ function renderBrowse() {
   );
 }
 
-function cardHTML(p) {
-  const cat   = p.categories;
+function cardHTML(p, dist = null) {
+  const cat    = p.categories;
   const photos = p.photos || [];
-  const date  = new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const date   = new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const distBadge = dist !== null ? `<span class="dist-badge">${formatDist(dist)}</span>` : '';
+  const cityTag   = dist !== null && p.city ? `<span class="card-city-tag">· ${p.city}</span>` : '';
   return `
     <div class="place-card" data-pid="${p.id}">
       <div class="place-card-icon">${cat?.icon || '📍'}</div>
       <div class="place-card-body">
-        <div class="place-card-cat" style="color:${cat?.color || '#DDA0DD'}">${cat?.name || 'Other'}</div>
+        <div class="place-card-cat" style="color:${cat?.color || '#DDA0DD'}">${cat?.name || 'Other'}${cityTag}</div>
         <div class="place-card-note">${p.note || 'No description'}</div>
-        <div class="place-card-date">${date}</div>
+        <div class="place-card-date">${date}${distBadge}</div>
       </div>
       ${photos.length ? `<img class="place-card-thumb" src="${photos[0]}" loading="lazy">` : ''}
     </div>`;
@@ -240,10 +263,153 @@ function openAddPlace() {
   document.getElementById('loc-city').textContent = 'Detecting location…';
   document.getElementById('loc-coords').textContent = '';
 
+  setAddMode('here');
+  clearSearch();
   renderCatPicker();
   openOverlay('screen-add');
 
   navigator.geolocation.getCurrentPosition(onGPS, onGPSErr, { enableHighAccuracy: true, timeout: 12000 });
+}
+
+/* ── Add mode (here vs search) ──────────────────────────────────────────── */
+function setAddMode(mode) {
+  S.addMode = mode;
+  const isSearch = mode === 'search';
+  document.getElementById('mode-tab-here').classList.toggle('active', !isSearch);
+  document.getElementById('mode-tab-search').classList.toggle('active', isSearch);
+  document.getElementById('mini-map-wrap').style.display   = isSearch ? 'none'  : 'block';
+  document.getElementById('search-section').style.display  = isSearch ? 'flex'  : 'none';
+  if (!isSearch && S.addMap) setTimeout(() => S.addMap.invalidateSize(), 60);
+  if (isSearch) setTimeout(() => document.getElementById('place-search-input').focus(), 60);
+}
+
+/* ── Search ──────────────────────────────────────────────────────────────── */
+function onSearchInput(val) {
+  clearTimeout(S.searchTimer);
+  const el = document.getElementById('search-results');
+  if (val.length < 2) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="search-status">Searching…</div>';
+  S.searchTimer = setTimeout(() => doSearch(val), 380);
+}
+
+async function doSearch(query) {
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=7&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    S.searchResults = await r.json();
+    renderSearchResults();
+  } catch {
+    document.getElementById('search-results').innerHTML =
+      '<div class="search-status">Search failed — check connection</div>';
+  }
+}
+
+function searchResultIcon(r) {
+  const t = r.type || '';
+  if (['restaurant','fast_food','food_court','biergarten'].includes(t)) return '🍽️';
+  if (['cafe','coffee_shop'].includes(t))                               return '☕';
+  if (['bar','pub','nightclub'].includes(t))                            return '🍺';
+  if (['gym','fitness_centre','sports_centre'].includes(t))             return '🏋️';
+  if (['hotel','hostel','motel','guest_house'].includes(t))             return '🏨';
+  if (['pharmacy','hospital','clinic','doctors'].includes(t))           return '💊';
+  if (r.class === 'tourism')  return '🏛️';
+  if (r.class === 'shop')     return '🛍️';
+  if (r.class === 'leisure')  return '🌿';
+  if (r.class === 'natural')  return '🌲';
+  return '📍';
+}
+
+function renderSearchResults() {
+  const el = document.getElementById('search-results');
+  if (!S.searchResults.length) {
+    el.innerHTML = '<div class="search-status">No results found</div>';
+    return;
+  }
+  el.innerHTML = S.searchResults.map((r, i) => {
+    const parts = r.display_name.split(', ');
+    const name  = parts[0];
+    const sub   = parts.slice(1, 3).join(', ');
+    return `
+      <div class="search-result-item" data-ridx="${i}">
+        <span class="search-result-icon">${searchResultIcon(r)}</span>
+        <div>
+          <div class="search-result-name">${name}</div>
+          <div class="search-result-sub">${sub}</div>
+        </div>
+      </div>`;
+  }).join('');
+  el.querySelectorAll('[data-ridx]').forEach(item =>
+    item.addEventListener('click', () => selectSearchResult(+item.dataset.ridx))
+  );
+}
+
+function selectSearchResult(idx) {
+  const r = S.searchResults[idx];
+  S.currentLat = parseFloat(r.lat);
+  S.currentLng = parseFloat(r.lon);
+  const a = r.address || {};
+  S.currentCity    = a.city || a.town || a.village || a.county || a.state || r.display_name.split(',')[0];
+  S.currentCountry = a.country || '';
+
+  document.getElementById('loc-city').textContent =
+    [S.currentCity, S.currentCountry].filter(Boolean).join(', ');
+  document.getElementById('loc-coords').textContent =
+    `${S.currentLat.toFixed(5)}, ${S.currentLng.toFixed(5)}`;
+
+  setAddMode('here');
+
+  if (!S.addMap) {
+    S.addMap = L.map('add-map', { zoomControl: false, attributionControl: false })
+      .setView([S.currentLat, S.currentLng], 15);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(S.addMap);
+  } else {
+    if (S.addMapMarker) S.addMapMarker.remove();
+    S.addMap.setView([S.currentLat, S.currentLng], 15);
+  }
+  S.addMapMarker = L.marker([S.currentLat, S.currentLng]).addTo(S.addMap);
+  setTimeout(() => S.addMap.invalidateSize(), 80);
+}
+
+function clearSearch() {
+  const inp = document.getElementById('place-search-input');
+  const res = document.getElementById('search-results');
+  if (inp) inp.value = '';
+  if (res) res.innerHTML = '';
+  S.searchResults = [];
+}
+
+/* ── Near Me ─────────────────────────────────────────────────────────────── */
+function toggleNearMe() {
+  if (!S.nearMeActive) {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        S.userLat = pos.coords.latitude;
+        S.userLng = pos.coords.longitude;
+        S.nearMeActive = true;
+        document.getElementById('near-me-btn').classList.add('active');
+        renderBrowse();
+      },
+      () => toast('Could not get your location'),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  } else {
+    S.nearMeActive = false;
+    document.getElementById('near-me-btn').classList.remove('active');
+    renderBrowse();
+  }
+}
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371, toR = x => x * Math.PI / 180;
+  const dLat = toR(lat2 - lat1), dLng = toR(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toR(lat1)) * Math.cos(toR(lat2)) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDist(km) {
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
 }
 
 async function onGPS(pos) {
@@ -534,6 +700,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Close modal on backdrop tap
   document.getElementById('modal-cat').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeCategoryModal();
+  });
+
+  // Search input
+  document.getElementById('place-search-input').addEventListener('input', e => {
+    onSearchInput(e.target.value.trim());
   });
 
   // Online/offline feedback

@@ -190,7 +190,7 @@ html, body {
 .leaflet-popup-tip { background: var(--surface) !important; }
 
 /* Browse list */
-.browse-list { height: 100%; overflow-y: auto; padding: 16px 16px 100px; }
+.browse-list { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 16px 100px; }
 
 .city-group { margin-bottom: 28px; }
 
@@ -631,3 +631,155 @@ html, body {
   white-space: nowrap;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Browse controls bar ──────────────────────────────────────── */
+#view-browse { display: flex; flex-direction: column; }
+
+.browse-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.browse-total { font-size: 13px; color: var(--text2); }
+
+.near-me-btn {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.near-me-btn.active {
+  background: rgba(233,69,96,.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.near-me-label {
+  font-size: 12px;
+  color: var(--text3);
+  padding: 10px 16px 4px;
+  letter-spacing: 0.3px;
+}
+
+/* Distance badge on place cards */
+.dist-badge {
+  display: inline-block;
+  background: rgba(78,205,196,.15);
+  color: #4ECDC4;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.card-city-tag {
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text3);
+  margin-left: 4px;
+}
+
+/* ── Add Place mode tabs ──────────────────────────────────────── */
+.add-mode-tabs {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.mode-tab {
+  flex: 1;
+  padding: 12px 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text2);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.mode-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Search section ───────────────────────────────────────────── */
+.search-section {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}
+
+.place-search-input {
+  flex: 1;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 16px;
+  padding: 11px 14px;
+  font-family: inherit;
+}
+.place-search-input:focus { outline: none; border-color: var(--accent); }
+
+.search-clear-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text2);
+  width: 30px; height: 30px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.search-results { overflow-y: auto; max-height: 52vh; }
+
+.search-result-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.search-result-item:active { background: var(--surface); }
+
+.search-result-icon { font-size: 24px; flex-shrink: 0; margin-top: 1px; }
+.search-result-name { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+.search-result-sub  { font-size: 12px; color: var(--text2); }
+
+.search-status {
+  padding: 22px 16px;
+  color: var(--text3);
+  font-size: 14px;
+  text-align: center;
+}

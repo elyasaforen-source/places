@@ -62,6 +62,10 @@
     </div>
 
     <div id="view-browse" class="view" style="display:none">
+      <div class="browse-controls">
+        <span class="browse-total" id="browse-total"></span>
+        <button class="near-me-btn" id="near-me-btn" onclick="toggleNearMe()">📍 Near me</button>
+      </div>
       <div class="browse-list" id="browse-list">
         <div class="empty-state">
           <span>🗺️</span>
@@ -82,7 +86,15 @@
       <button class="hdr-btn primary-btn" id="btn-save-place" onclick="savePlace()">Save</button>
     </div>
     <div class="overlay-body">
-      <div class="mini-map-wrap">
+
+      <!-- Mode toggle -->
+      <div class="add-mode-tabs">
+        <button class="mode-tab active" id="mode-tab-here" onclick="setAddMode('here')">📍 I'm here</button>
+        <button class="mode-tab" id="mode-tab-search" onclick="setAddMode('search')">🔍 Search place</button>
+      </div>
+
+      <!-- GPS / mini map -->
+      <div class="mini-map-wrap" id="mini-map-wrap">
         <div id="add-map" class="mini-map"></div>
         <div class="location-bar">
           <span class="loc-icon">📍</span>
@@ -91,6 +103,16 @@
             <div id="loc-coords" class="loc-coords"></div>
           </div>
         </div>
+      </div>
+
+      <!-- Search -->
+      <div id="search-section" class="search-section" style="display:none">
+        <div class="search-input-wrap">
+          <input type="text" id="place-search-input" class="place-search-input"
+                 placeholder="Restaurant, gym, museum…" autocomplete="off">
+          <button class="search-clear-btn" onclick="clearSearch()">✕</button>
+        </div>
+        <div id="search-results" class="search-results"></div>
       </div>
 
       <div class="form-section">
