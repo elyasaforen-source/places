@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f0f1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Places</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── PIN Screen ───────────────────────────────── -->
+  <div id="screen-pin" class="screen active">
+    <div class="pin-container">
+      <div class="app-logo">📍</div>
+      <h1>Places</h1>
+      <p id="pin-subtitle">Enter your PIN</p>
+      <div class="pin-dots">
+        <span class="dot" id="dot-0"></span>
+        <span class="dot" id="dot-1"></span>
+        <span class="dot" id="dot-2"></span>
+        <span class="dot" id="dot-3"></span>
+      </div>
+      <div class="numpad">
+        <button class="num-btn" data-num="1">1</button>
+        <button class="num-btn" data-num="2">2</button>
+        <button class="num-btn" data-num="3">3</button>
+        <button class="num-btn" data-num="4">4</button>
+        <button class="num-btn" data-num="5">5</button>
+        <button class="num-btn" data-num="6">6</button>
+        <button class="num-btn" data-num="7">7</button>
+        <button class="num-btn" data-num="8">8</button>
+        <button class="num-btn" data-num="9">9</button>
+        <div class="num-btn empty"></div>
+        <button class="num-btn" data-num="0">0</button>
+        <button class="num-btn delete-btn" id="pin-delete">⌫</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main Screen ──────────────────────────────── -->
+  <div id="screen-main" class="screen">
+    <header class="app-header">
+      <div class="header-row">
+        <span class="header-logo">📍</span>
+        <span class="header-title">Places</span>
+        <button class="header-settings-btn" onclick="openSettings()">⚙️</button>
+      </div>
+      <div class="header-tabs">
+        <button class="tab-btn active" id="tab-map" onclick="switchTab('map')">Map</button>
+        <button class="tab-btn" id="tab-browse" onclick="switchTab('browse')">Cities</button>
+      </div>
+    </header>
+
+    <div id="view-map" class="view">
+      <div id="map"></div>
+    </div>
+
+    <div id="view-browse" class="view" style="display:none">
+      <div class="browse-list" id="browse-list">
+        <div class="empty-state">
+          <span>🗺️</span>
+          <p>No places saved yet</p>
+          <small>Tap + to save your first place</small>
+        </div>
+      </div>
+    </div>
+
+    <button class="fab" onclick="openAddPlace()">+</button>
+  </div>
+
+  <!-- ── Add Place Overlay ──────────────────────── -->
+  <div id="screen-add" class="screen-overlay">
+    <div class="overlay-header">
+      <button class="hdr-btn" onclick="closeAddPlace()">✕</button>
+      <span class="overlay-title">Save Place</span>
+      <button class="hdr-btn primary-btn" id="btn-save-place" onclick="savePlace()">Save</button>
+    </div>
+    <div class="overlay-body">
+      <div class="mini-map-wrap">
+        <div id="add-map" class="mini-map"></div>
+        <div class="location-bar">
+          <span class="loc-icon">📍</span>
+          <div>
+            <div id="loc-city" class="loc-city">Detecting location…</div>
+            <div id="loc-coords" class="loc-coords"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">Note</label>
+        <textarea id="place-note" class="form-textarea"
+          placeholder="What is this place? Why are you saving it?"></textarea>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">Category</label>
+        <div class="cat-picker" id="cat-picker"></div>
+        <button class="add-cat-btn" onclick="openCategoryModal()">+ New category</button>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">Photos</label>
+        <div class="photo-row">
+          <div id="photo-thumbs"></div>
+          <label class="photo-add-btn">
+            📷 Add
+            <input type="file" id="photo-input" accept="image/*" capture="environment" multiple>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Detail Overlay ────────────────────────── -->
+  <div id="screen-detail" class="screen-overlay">
+    <div class="overlay-header">
+      <button class="hdr-btn" onclick="closeDetail()">←</button>
+      <span class="overlay-title" id="detail-cat-label"></span>
+      <button class="hdr-btn danger-btn" onclick="deleteCurrentPlace()">🗑</button>
+    </div>
+    <div class="overlay-body">
+      <div id="detail-photos" class="detail-photos-strip"></div>
+      <div class="detail-body">
+        <div class="detail-location">
+          <span id="detail-city" class="detail-city"></span>
+          <span id="detail-country" class="detail-country"></span>
+        </div>
+        <p id="detail-note" class="detail-note"></p>
+        <div id="detail-date" class="detail-date"></div>
+        <button class="maps-btn" onclick="openInMaps()">🗺 Open in Google Maps</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Settings Overlay ──────────────────────── -->
+  <div id="screen-settings" class="screen-overlay">
+    <div class="overlay-header">
+      <button class="hdr-btn" onclick="closeSettings()">←</button>
+      <span class="overlay-title">Settings</span>
+      <div style="width:40px"></div>
+    </div>
+    <div class="overlay-body">
+      <div class="settings-section">
+        <div class="settings-section-title">Categories</div>
+        <div id="settings-cats"></div>
+        <button class="settings-action-btn" onclick="openCategoryModal()">+ Add Category</button>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Security</div>
+        <button class="settings-action-btn danger" onclick="resetPIN()">Change PIN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Category Modal ────────────────────────── -->
+  <div id="modal-cat" class="modal-backdrop">
+    <div class="modal-sheet">
+      <div class="modal-title">New Category</div>
+      <input type="text" id="cat-name-input" class="modal-input" placeholder="Category name (e.g. Café, Park…)">
+      <div class="form-label" style="margin-bottom:10px">Icon</div>
+      <div class="emoji-grid" id="emoji-grid">
+        <span class="emoji-opt selected" data-emoji="📍">📍</span>
+        <span class="emoji-opt" data-emoji="🍕">🍕</span>
+        <span class="emoji-opt" data-emoji="🍣">🍣</span>
+        <span class="emoji-opt" data-emoji="🍺">🍺</span>
+        <span class="emoji-opt" data-emoji="☕">☕</span>
+        <span class="emoji-opt" data-emoji="🏋️">🏋️</span>
+        <span class="emoji-opt" data-emoji="🛍️">🛍️</span>
+        <span class="emoji-opt" data-emoji="🏖️">🏖️</span>
+        <span class="emoji-opt" data-emoji="🏛️">🏛️</span>
+        <span class="emoji-opt" data-emoji="🎭">🎭</span>
+        <span class="emoji-opt" data-emoji="🌿">🌿</span>
+        <span class="emoji-opt" data-emoji="⭐">⭐</span>
+        <span class="emoji-opt" data-emoji="🎯">🎯</span>
+        <span class="emoji-opt" data-emoji="🏨">🏨</span>
+        <span class="emoji-opt" data-emoji="💊">💊</span>
+        <span class="emoji-opt" data-emoji="✈️">✈️</span>
+      </div>
+      <div class="form-label" style="margin:14px 0 10px">Color</div>
+      <div class="color-grid" id="color-grid">
+        <span class="color-opt selected" data-color="#FF6B6B" style="background:#FF6B6B"></span>
+        <span class="color-opt" data-color="#FF9F43" style="background:#FF9F43"></span>
+        <span class="color-opt" data-color="#FFEAA7" style="background:#FFEAA7"></span>
+        <span class="color-opt" data-color="#96CEB4" style="background:#96CEB4"></span>
+        <span class="color-opt" data-color="#4ECDC4" style="background:#4ECDC4"></span>
+        <span class="color-opt" data-color="#45B7D1" style="background:#45B7D1"></span>
+        <span class="color-opt" data-color="#A29BFE" style="background:#A29BFE"></span>
+        <span class="color-opt" data-color="#DDA0DD" style="background:#DDA0DD"></span>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-cancel-btn" onclick="closeCategoryModal()">Cancel</button>
+        <button class="modal-create-btn" onclick="createCategory()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast ──────────────────────────────────── -->
+  <div id="toast" class="toast"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
