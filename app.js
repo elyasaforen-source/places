@@ -50,7 +50,7 @@ function updateDots(n) {
 function errorDots() {
   document.querySelectorAll('.dot').forEach(d => {
     d.classList.add('shake');
-    d.style.background = '#e94560';
+    d.style.background = '#ba1a1a';
     setTimeout(() => { d.classList.remove('shake'); d.style.background = ''; }, 500);
   });
 }
@@ -101,6 +101,7 @@ function pinBack() {
 async function boot() {
   showScreen('screen-main');
   await loadData();
+  renderBrowse();
   initMainMap();
 }
 
@@ -123,8 +124,8 @@ function closeOverlay(id) {
 
 /* ── Tab switching ────────────────────────────────────────────────────── */
 function switchTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.querySelectorAll('.nav-item[id^="tab-"]').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${tab}`)?.classList.add('active');
 
   document.getElementById('view-map').style.display    = tab === 'map'    ? 'block' : 'none';
   document.getElementById('view-browse').style.display = tab === 'browse' ? 'flex'  : 'none';
@@ -170,7 +171,7 @@ function initMainMap() {
 
   S.map = L.map('map', { zoomControl: false }).setView([20, 10], 2);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', {
     maxZoom: 19,
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
   }).addTo(S.map);
@@ -214,11 +215,17 @@ function makePinIcon(cat) {
   const c = cat?.color || '#DDA0DD';
   const i = cat?.icon  || '📍';
   return L.divIcon({
-    html: `<div style="width:38px;height:38px;background:${c};border-radius:50% 50% 50% 0;
-             transform:rotate(-45deg);border:2px solid rgba(255,255,255,.4);
-             box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center">
-             <span style="transform:rotate(45deg);font-size:17px">${i}</span></div>`,
-    iconSize: [38, 38], iconAnchor: [19, 38], className: '',
+    html: `<div class="pin-marker" style="width:44px;height:52px;position:relative;display:flex;justify-content:center">
+             <div style="width:44px;height:44px;background:#fff;border-radius:50% 50% 50% 0;
+               transform:rotate(-45deg);border:2px solid rgba(0,0,0,0.08);
+               box-shadow:0 4px 16px rgba(0,0,0,0.14),0 8px 24px rgba(0,0,0,0.08);
+               display:flex;align-items:center;justify-content:center">
+               <span style="transform:rotate(45deg);font-size:18px;display:block">${i}</span>
+             </div>
+             <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+               width:8px;height:8px;background:rgba(0,0,0,0.12);border-radius:50%;filter:blur(2px)"></div>
+           </div>`,
+    iconSize: [44, 52], iconAnchor: [22, 52], className: '',
   });
 }
 
@@ -457,7 +464,7 @@ function selectSearchResult(idx) {
   if (!S.addMap) {
     S.addMap = L.map('add-map', { zoomControl: false, attributionControl: false })
       .setView([S.currentLat, S.currentLng], 15);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(S.addMap);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', { maxZoom: 19 }).addTo(S.addMap);
   } else {
     if (S.addMapMarker) S.addMapMarker.remove();
     S.addMap.setView([S.currentLat, S.currentLng], 15);
@@ -514,7 +521,7 @@ async function onGPS(pos) {
   // Mini map
   if (!S.addMap) {
     S.addMap = L.map('add-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 16);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(S.addMap);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', { maxZoom: 19 }).addTo(S.addMap);
   } else {
     S.addMap.setView([lat, lng], 16);
     if (S.addMapMarker) S.addMapMarker.remove();
@@ -746,7 +753,48 @@ function openSettings() {
 
 function closeSettings() { closeOverlay('screen-settings'); }
 
+function renderStats() {
+  const el = document.getElementById('settings-stats');
+  if (!el) return;
+  const totalPlaces   = S.places.length;
+  const uniqueCities  = new Set(S.places.map(p => p.city).filter(Boolean)).size;
+  const uniqueCountries = new Set(S.places.map(p => p.country).filter(Boolean)).size;
+  const catCounts = {};
+  S.places.forEach(p => {
+    const cat = S.categories.find(c => c.id === p.category_id);
+    if (cat) catCounts[cat.id] = (catCounts[cat.id] || 0) + 1;
+  });
+  const topCatEntry = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0];
+  const topCat = topCatEntry ? S.categories.find(c => c.id === topCatEntry[0]) : null;
+
+  el.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-value">${totalPlaces}</div>
+      <div class="stat-label">Places logged</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${uniqueCities}</div>
+      <div class="stat-label">Cities explored</div>
+    </div>
+    ${uniqueCountries > 0 ? `
+    <div class="stat-card">
+      <div class="stat-value">${uniqueCountries}</div>
+      <div class="stat-label">Countries visited</div>
+    </div>` : ''}
+    ${topCat ? `
+    <div class="stat-card ${uniqueCountries > 0 ? '' : 'stat-card-wide'}">
+      <div class="stat-top-cat">
+        <div class="stat-cat-icon">${topCat.icon}</div>
+        <div class="stat-cat-info">
+          <div class="stat-cat-name">${topCat.name}</div>
+          <div class="stat-cat-sub">Top category · ${topCatEntry[1]} place${topCatEntry[1] !== 1 ? 's' : ''}</div>
+        </div>
+      </div>
+    </div>` : ''}`;
+}
+
 function renderSettingsCats() {
+  renderStats();
   document.getElementById('settings-cats').innerHTML = S.categories.map(c => `
     <div class="settings-cat-row">
       <span class="settings-cat-dot" style="background:${c.color}"></span>

@@ -2,29 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0f0f1a">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#f8f9ff">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Places</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 
-  <!-- ── PIN Screen ───────────────────────────────── -->
+  <!-- ── PIN Screen ─────────────────────────────────────────── -->
   <div id="screen-pin" class="screen active">
     <div class="pin-container">
-      <div class="app-logo">📍</div>
-      <h1>Places</h1>
-      <p id="pin-subtitle">Enter your PIN</p>
-      <div class="pin-dots">
-        <span class="dot" id="dot-0"></span>
-        <span class="dot" id="dot-1"></span>
-        <span class="dot" id="dot-2"></span>
-        <span class="dot" id="dot-3"></span>
+      <div class="pin-logo">
+        <span class="material-symbols-outlined">location_on</span>
+      </div>
+      <h1 class="pin-wordmark">Places</h1>
+      <p id="pin-subtitle" class="pin-subtitle">Enter your PIN</p>
+      <div class="pin-dots-wrap">
+        <div class="pin-dots">
+          <span class="dot" id="dot-0"></span>
+          <span class="dot" id="dot-1"></span>
+          <span class="dot" id="dot-2"></span>
+          <span class="dot" id="dot-3"></span>
+        </div>
       </div>
       <div class="numpad">
         <button class="num-btn" data-num="1">1</button>
@@ -38,76 +46,95 @@
         <button class="num-btn" data-num="9">9</button>
         <div class="num-btn empty"></div>
         <button class="num-btn" data-num="0">0</button>
-        <button class="num-btn delete-btn" id="pin-delete">⌫</button>
+        <button class="num-btn delete-btn" id="pin-delete">
+          <span class="material-symbols-outlined">backspace</span>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- ── Main Screen ──────────────────────────────── -->
+  <!-- ── Main Screen ────────────────────────────────────────── -->
   <div id="screen-main" class="screen">
-    <header class="app-header">
-      <div class="header-row">
-        <span class="header-logo">📍</span>
-        <span class="header-title">Places</span>
-        <button class="header-settings-btn" onclick="openSettings()">⚙️</button>
-      </div>
-      <div class="header-tabs">
-        <button class="tab-btn active" id="tab-map" onclick="switchTab('map')">Map</button>
-        <button class="tab-btn" id="tab-browse" onclick="switchTab('browse')">Cities</button>
-      </div>
+    <!-- Top bar -->
+    <header class="top-bar">
+      <span class="top-wordmark">Places</span>
     </header>
 
-    <div id="view-map" class="view">
+    <!-- Map view -->
+    <div id="view-map" class="view" style="display:none">
       <div id="map"></div>
-      <button class="locate-btn" id="locate-btn" onclick="locateMe()" title="Go to my location">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="4"/>
-          <line x1="12" y1="2" x2="12" y2="6"/>
-          <line x1="12" y1="18" x2="12" y2="22"/>
-          <line x1="2" y1="12" x2="6" y2="12"/>
-          <line x1="18" y1="12" x2="22" y2="12"/>
-        </svg>
+      <button class="locate-btn" id="locate-btn" onclick="locateMe()" title="My location">
+        <span class="material-symbols-outlined">my_location</span>
       </button>
     </div>
 
-    <div id="view-browse" class="view" style="display:none">
+    <!-- Browse view -->
+    <div id="view-browse" class="view view-browse">
       <div class="browse-controls">
         <span class="browse-total" id="browse-total"></span>
-        <button class="browse-ctrl-btn" id="near-me-btn" onclick="toggleNearMe()">📍 Near me</button>
+        <button class="browse-ctrl-btn" id="near-me-btn" onclick="toggleNearMe()">
+          <span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px">near_me</span>
+          Near me
+        </button>
         <button class="browse-ctrl-btn" id="select-btn" onclick="toggleSelectMode()">Select</button>
       </div>
       <div class="browse-list" id="browse-list">
         <div class="empty-state">
-          <span>🗺️</span>
-          <p>No places saved yet</p>
+          <span class="material-symbols-outlined empty-icon">explore</span>
+          <p>No places yet</p>
           <small>Tap + to save your first place</small>
         </div>
       </div>
     </div>
 
-    <button class="fab" onclick="openAddPlace()">+</button>
+    <!-- Floating bottom nav -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" id="tab-browse" onclick="switchTab('browse')">
+        <span class="material-symbols-outlined nav-icon">bookmark</span>
+        <span class="nav-label">Browse</span>
+      </button>
+      <button class="nav-item" id="tab-map" onclick="switchTab('map')">
+        <span class="material-symbols-outlined nav-icon">map</span>
+        <span class="nav-label">Map</span>
+      </button>
+      <button class="nav-add-btn" onclick="openAddPlace()" title="Add place">
+        <span class="material-symbols-outlined">add</span>
+      </button>
+      <button class="nav-item" id="nav-settings" onclick="openSettings()">
+        <span class="material-symbols-outlined nav-icon">settings</span>
+        <span class="nav-label">Settings</span>
+      </button>
+    </nav>
   </div>
 
-  <!-- ── Add Place Overlay ──────────────────────── -->
+  <!-- ── Add Place Overlay ──────────────────────────────────── -->
   <div id="screen-add" class="screen-overlay">
     <div class="overlay-header">
-      <button class="hdr-btn" onclick="closeAddPlace()">✕</button>
+      <button class="hdr-btn" onclick="closeAddPlace()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
       <span class="overlay-title">Save Place</span>
-      <button class="hdr-btn primary-btn" id="btn-save-place" onclick="savePlace()">Save</button>
+      <button class="hdr-btn hdr-btn-primary" id="btn-save-place" onclick="savePlace()">Save</button>
     </div>
     <div class="overlay-body">
 
       <!-- Mode toggle -->
       <div class="add-mode-tabs">
-        <button class="mode-tab active" id="mode-tab-here" onclick="setAddMode('here')">📍 I'm here</button>
-        <button class="mode-tab" id="mode-tab-search" onclick="setAddMode('search')">🔍 Search place</button>
+        <button class="mode-tab active" id="mode-tab-here" onclick="setAddMode('here')">
+          <span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px">location_on</span>
+          I'm here
+        </button>
+        <button class="mode-tab" id="mode-tab-search" onclick="setAddMode('search')">
+          <span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px">search</span>
+          Search place
+        </button>
       </div>
 
       <!-- GPS / mini map -->
       <div class="mini-map-wrap" id="mini-map-wrap">
         <div id="add-map" class="mini-map"></div>
         <div class="location-bar">
-          <span class="loc-icon">📍</span>
+          <span class="material-symbols-outlined loc-icon">location_pin</span>
           <div>
             <div id="loc-city" class="loc-city">Detecting location…</div>
             <div id="loc-coords" class="loc-coords"></div>
@@ -118,9 +145,12 @@
       <!-- Search -->
       <div id="search-section" class="search-section" style="display:none">
         <div class="search-input-wrap">
+          <span class="material-symbols-outlined search-icon-inner">search</span>
           <input type="text" id="place-search-input" class="place-search-input"
-                 placeholder="Restaurant, gym, museum…" autocomplete="off">
-          <button class="search-clear-btn" onclick="clearSearch()">✕</button>
+                 placeholder="Restaurant, café, museum…" autocomplete="off">
+          <button class="search-clear-btn" onclick="clearSearch()">
+            <span class="material-symbols-outlined" style="font-size:16px">close</span>
+          </button>
         </div>
         <div id="search-results" class="search-results"></div>
       </div>
@@ -142,7 +172,8 @@
         <div class="photo-row">
           <div id="photo-thumbs"></div>
           <label class="photo-add-btn">
-            📷 Add
+            <span class="material-symbols-outlined" style="font-size:22px">add_a_photo</span>
+            <span>Add</span>
             <input type="file" id="photo-input" accept="image/*" capture="environment" multiple>
           </label>
         </div>
@@ -150,44 +181,71 @@
     </div>
   </div>
 
-  <!-- ── Detail Overlay ────────────────────────── -->
+  <!-- ── Detail Overlay ────────────────────────────────────── -->
   <div id="screen-detail" class="screen-overlay">
-    <div class="overlay-header">
-      <button class="hdr-btn" onclick="closeDetail()">←</button>
-      <span class="overlay-title" id="detail-cat-label"></span>
-      <button class="hdr-btn danger-btn" onclick="deleteCurrentPlace()">🗑</button>
-    </div>
-    <div class="overlay-body">
+    <div class="detail-hero-wrap">
       <div id="detail-photos" class="detail-photos-strip"></div>
-      <div class="detail-body">
-        <div class="detail-location">
-          <span id="detail-city" class="detail-city"></span>
-          <span id="detail-country" class="detail-country"></span>
-        </div>
-        <p id="detail-note" class="detail-note"></p>
-        <div id="detail-date" class="detail-date"></div>
-        <button class="maps-btn" onclick="openInMaps()">🗺 Open in Google Maps</button>
+      <div class="detail-hero-overlay">
+        <button class="detail-back-btn" onclick="closeDetail()">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </button>
+        <span class="detail-cat-chip" id="detail-cat-label"></span>
+        <button class="detail-delete-btn" onclick="deleteCurrentPlace()">
+          <span class="material-symbols-outlined">delete</span>
+        </button>
       </div>
+    </div>
+    <div class="overlay-body detail-overlay-body">
+      <div class="detail-location-row">
+        <span id="detail-city" class="detail-city"></span>
+        <span id="detail-country" class="detail-country"></span>
+      </div>
+      <p id="detail-note" class="detail-note"></p>
+      <div id="detail-date" class="detail-date"></div>
+      <button class="maps-btn" onclick="openInMaps()">
+        <span class="material-symbols-outlined" style="font-size:18px">open_in_new</span>
+        Open in Google Maps
+      </button>
     </div>
   </div>
 
-  <!-- ── Settings Overlay ──────────────────────── -->
+  <!-- ── Settings Overlay ───────────────────────────────────── -->
   <div id="screen-settings" class="screen-overlay">
     <div class="overlay-header">
-      <button class="hdr-btn" onclick="closeSettings()">←</button>
-      <span class="overlay-title">Settings</span>
-      <div style="width:40px"></div>
+      <button class="hdr-btn" onclick="closeSettings()">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <span class="overlay-title">Personal Vault</span>
+      <div style="width:44px"></div>
     </div>
     <div class="overlay-body">
+
+      <!-- Stats bento -->
+      <div class="settings-section">
+        <div class="settings-section-title">Your Journey</div>
+        <div id="settings-stats" class="stats-bento"></div>
+      </div>
+
+      <!-- Categories -->
       <div class="settings-section">
         <div class="settings-section-title">Categories</div>
         <div id="settings-cats"></div>
-        <button class="settings-action-btn" onclick="openCategoryModal()">+ Add Category</button>
+        <button class="settings-action-btn" onclick="openCategoryModal()">
+          <span class="material-symbols-outlined" style="font-size:18px;vertical-align:-4px">add</span>
+          Add Category
+        </button>
       </div>
+
+      <!-- Security -->
       <div class="settings-section">
         <div class="settings-section-title">Security</div>
-        <button class="settings-action-btn danger" onclick="resetPIN()">Change PIN</button>
+        <button class="settings-action-btn settings-action-danger" onclick="resetPIN()">
+          <span class="material-symbols-outlined" style="font-size:18px;vertical-align:-4px">lock_reset</span>
+          Change PIN
+        </button>
       </div>
+
+      <!-- Version -->
       <div class="settings-section">
         <div class="settings-version-row">
           <span class="settings-version-label">Places</span>
@@ -197,12 +255,13 @@
     </div>
   </div>
 
-  <!-- ── Category Modal ────────────────────────── -->
+  <!-- ── Category Modal ────────────────────────────────────── -->
   <div id="modal-cat" class="modal-backdrop">
     <div class="modal-sheet">
+      <div class="modal-handle"></div>
       <div class="modal-title">New Category</div>
-      <input type="text" id="cat-name-input" class="modal-input" placeholder="Category name (e.g. Café, Park…)">
-      <div class="form-label" style="margin-bottom:10px">Icon</div>
+      <input type="text" id="cat-name-input" class="modal-input" placeholder="e.g. Café, Park, Gym…">
+      <div class="form-label" style="margin-bottom:12px">Icon</div>
       <div class="emoji-grid" id="emoji-grid">
         <span class="emoji-opt selected" data-emoji="📍">📍</span>
         <span class="emoji-opt" data-emoji="🍕">🍕</span>
@@ -221,7 +280,7 @@
         <span class="emoji-opt" data-emoji="💊">💊</span>
         <span class="emoji-opt" data-emoji="✈️">✈️</span>
       </div>
-      <div class="form-label" style="margin:14px 0 10px">Color</div>
+      <div class="form-label" style="margin:16px 0 12px">Color</div>
       <div class="color-grid" id="color-grid">
         <span class="color-opt selected" data-color="#FF6B6B" style="background:#FF6B6B"></span>
         <span class="color-opt" data-color="#FF9F43" style="background:#FF9F43"></span>
@@ -239,19 +298,19 @@
     </div>
   </div>
 
-  <!-- ── Select bar ───────────────────────────────── -->
+  <!-- ── Select bar ─────────────────────────────────────────── -->
   <div id="select-bar" class="select-bar" style="display:none">
     <span class="select-count" id="select-count">0 selected</span>
     <button class="select-delete-btn" id="select-delete-btn" onclick="deleteSelected()" disabled>Delete</button>
   </div>
 
-  <!-- ── Toast ──────────────────────────────────── -->
+  <!-- ── Toast ──────────────────────────────────────────────── -->
   <div id="toast" class="toast"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-  <script src="config.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="config.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

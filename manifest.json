@@ -4,8 +4,8 @@
   "description": "Save places you want to visit while traveling",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0f0f1a",
-  "theme_color": "#0f0f1a",
+  "background_color": "#f8f9ff",
+  "theme_color": "#f8f9ff",
   "orientation": "portrait-primary",
   "icons": [
     {
