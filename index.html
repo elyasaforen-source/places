@@ -18,43 +18,8 @@
 </head>
 <body>
 
-  <!-- ── PIN Screen ─────────────────────────────────────────── -->
-  <div id="screen-pin" class="screen active">
-    <div class="pin-container">
-      <div class="pin-logo">
-        <span class="material-symbols-outlined">location_on</span>
-      </div>
-      <h1 class="pin-wordmark">Places</h1>
-      <p id="pin-subtitle" class="pin-subtitle">Enter your PIN</p>
-      <div class="pin-dots-wrap">
-        <div class="pin-dots">
-          <span class="dot" id="dot-0"></span>
-          <span class="dot" id="dot-1"></span>
-          <span class="dot" id="dot-2"></span>
-          <span class="dot" id="dot-3"></span>
-        </div>
-      </div>
-      <div class="numpad">
-        <button class="num-btn" data-num="1">1</button>
-        <button class="num-btn" data-num="2">2</button>
-        <button class="num-btn" data-num="3">3</button>
-        <button class="num-btn" data-num="4">4</button>
-        <button class="num-btn" data-num="5">5</button>
-        <button class="num-btn" data-num="6">6</button>
-        <button class="num-btn" data-num="7">7</button>
-        <button class="num-btn" data-num="8">8</button>
-        <button class="num-btn" data-num="9">9</button>
-        <div class="num-btn empty"></div>
-        <button class="num-btn" data-num="0">0</button>
-        <button class="num-btn delete-btn" id="pin-delete">
-          <span class="material-symbols-outlined">backspace</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- ── Main Screen ────────────────────────────────────────── -->
-  <div id="screen-main" class="screen">
+  <div id="screen-main" class="screen active">
     <!-- Top bar -->
     <header class="top-bar">
       <span class="top-wordmark">Places</span>
@@ -63,9 +28,14 @@
     <!-- Map view -->
     <div id="view-map" class="view" style="display:none">
       <div id="map"></div>
-      <button class="locate-btn" id="locate-btn" onclick="locateMe()" title="My location">
-        <span class="material-symbols-outlined">my_location</span>
-      </button>
+      <div class="map-actions">
+        <button class="map-add-btn" onclick="openAddPlace()" title="Add this place">
+          <span class="material-symbols-outlined">add_location_alt</span>
+        </button>
+        <button class="locate-btn" id="locate-btn" onclick="locateMe()" title="My location">
+          <span class="material-symbols-outlined">my_location</span>
+        </button>
+      </div>
     </div>
 
     <!-- Browse view -->
@@ -233,15 +203,6 @@
         <button class="settings-action-btn" onclick="openCategoryModal()">
           <span class="material-symbols-outlined" style="font-size:18px;vertical-align:-4px">add</span>
           Add Category
-        </button>
-      </div>
-
-      <!-- Security -->
-      <div class="settings-section">
-        <div class="settings-section-title">Security</div>
-        <button class="settings-action-btn settings-action-danger" onclick="resetPIN()">
-          <span class="material-symbols-outlined" style="font-size:18px;vertical-align:-4px">lock_reset</span>
-          Change PIN
         </button>
       </div>
 

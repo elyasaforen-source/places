@@ -41,7 +41,7 @@
   --nav-h:         76px;
   --nav-gap:       20px;
   --safe-bottom:   env(safe-area-inset-bottom, 0px);
-  --nav-total:     calc(var(--nav-h) + var(--nav-gap) + var(--safe-bottom) + 16px);
+  --nav-total:     16px;
 }
 
 /* ── Base ──────────────────────────────────────────────────── */
@@ -85,125 +85,6 @@ html, body {
   transform: perspective(1200px) translateY(0) rotateX(0deg);
   pointer-events: auto;
 }
-
-/* ── PIN Screen ────────────────────────────────────────────── */
-.pin-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 24px;
-  background: var(--c-surface-2);
-}
-
-.pin-logo {
-  width: 72px;
-  height: 72px;
-  border-radius: var(--r-lg);
-  background: var(--c-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-  box-shadow: var(--sh-fab);
-}
-.pin-logo .material-symbols-outlined {
-  font-size: 36px;
-  color: #fff;
-}
-
-.pin-wordmark {
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  color: var(--c-on-surface);
-  margin-bottom: 8px;
-}
-
-.pin-subtitle {
-  font-size: 15px;
-  color: var(--c-secondary);
-  font-weight: 500;
-  margin-bottom: 48px;
-  text-align: center;
-}
-
-.pin-dots-wrap {
-  background: var(--c-surface-3);
-  border-radius: var(--r-pill);
-  padding: 16px 32px;
-  margin-bottom: 48px;
-  border: 1px solid var(--c-border);
-}
-
-.pin-dots {
-  display: flex;
-  gap: 20px;
-}
-
-.dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--c-border-strong);
-  border: 2px solid transparent;
-  transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.dot.filled {
-  background: var(--c-primary);
-  border-color: var(--c-primary);
-  transform: scale(1.25);
-  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  15%       { transform: translateX(-8px); }
-  35%       { transform: translateX(8px); }
-  55%       { transform: translateX(-5px); }
-  75%       { transform: translateX(5px); }
-}
-.dot.shake { animation: shake 0.42s ease; }
-
-.numpad {
-  display: grid;
-  grid-template-columns: repeat(3, 76px);
-  gap: 14px;
-}
-
-.num-btn {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  border: 1px solid var(--c-border);
-  background: var(--c-surface-2);
-  color: var(--c-on-surface);
-  font-family: var(--font);
-  font-size: 26px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--sh-card);
-  transition: transform 0.12s cubic-bezier(0.34, 1, 0.64, 1), background 0.1s, box-shadow 0.1s;
-  transform-style: preserve-3d;
-}
-.num-btn:active {
-  background: var(--c-surface-3);
-  transform: scale(0.91) translateZ(-6px);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-}
-.num-btn.empty  { background: transparent; border-color: transparent; box-shadow: none; pointer-events: none; }
-.num-btn.delete-btn {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  font-size: 16px;
-  color: var(--c-secondary);
-}
-.num-btn.delete-btn .material-symbols-outlined { font-size: 24px; }
 
 /* ── Top bar ───────────────────────────────────────────────── */
 .top-bar {
@@ -288,11 +169,40 @@ html, body {
 }
 .pin-marker { animation: markerPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
+/* Map floating action buttons */
+.map-actions {
+  position: absolute;
+  bottom: 20px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 400;
+}
+
+.map-add-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--c-primary);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--sh-fab);
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
+}
+.map-add-btn:active {
+  transform: scale(0.91);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+.map-add-btn .material-symbols-outlined { font-size: 24px; }
+
 /* Locate button */
 .locate-btn {
-  position: absolute;
-  bottom: calc(var(--nav-total) + 16px);
-  right: 16px;
+  position: static;
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -300,7 +210,6 @@ html, body {
   border: 1px solid var(--c-border);
   color: var(--c-on-surface);
   cursor: pointer;
-  z-index: 400;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -615,10 +524,8 @@ html, body {
 
 /* ── Bottom Nav ─────────────────────────────────────────────── */
 .bottom-nav {
-  position: fixed;
-  bottom: calc(var(--nav-gap) + var(--safe-bottom));
-  left: 16px;
-  right: 16px;
+  flex-shrink: 0;
+  margin: 8px 16px calc(16px + var(--safe-bottom));
   height: var(--nav-h);
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: var(--blur-glass);
@@ -1400,7 +1307,7 @@ html, body {
 /* ── Toast ───────────────────────────────────────────────────── */
 .toast {
   position: fixed;
-  bottom: calc(var(--nav-total) + 12px);
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%) translateY(10px);
   background: var(--c-on-surface);
@@ -1430,15 +1337,12 @@ html, body {
   }
   .screen-overlay.open { transform: translateY(0); }
   .place-card:hover { transform: translateY(-2px); }
-  .num-btn:active { transform: scale(0.94); }
   .nav-add-btn { animation: none; }
   @keyframes markerPop { from { opacity: 0; } to { opacity: 1; } }
 }
 
 /* ── Desktop responsive ──────────────────────────────────────── */
 @media (min-width: 768px) {
-  .numpad { grid-template-columns: repeat(3, 84px); gap: 16px; }
-  .num-btn { width: 84px; height: 84px; }
   .bottom-nav {
     left: 50%;
     transform: translateX(-50%);

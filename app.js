@@ -17,9 +17,6 @@ const S = {
   addMap: null,
   addMapMarker: null,
   markers: {},
-  pin: '',
-  isSettingPin: false,
-  firstPinEntry: '',
   pickedEmoji: '📍',
   pickedColor: '#FF6B6B',
   // Search
@@ -35,67 +32,6 @@ const S = {
   selectMode: false,
   selectedIds: new Set(),
 };
-
-/* ── PIN ──────────────────────────────────────────────────────────────── */
-async function sha256(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-function updateDots(n) {
-  for (let i = 0; i < 4; i++)
-    document.getElementById(`dot-${i}`).classList.toggle('filled', i < n);
-}
-
-function errorDots() {
-  document.querySelectorAll('.dot').forEach(d => {
-    d.classList.add('shake');
-    d.style.background = '#ba1a1a';
-    setTimeout(() => { d.classList.remove('shake'); d.style.background = ''; }, 500);
-  });
-}
-
-async function onPinDigit(digit) {
-  if (S.pin.length >= 4) return;
-  S.pin += digit;
-  updateDots(S.pin.length);
-  if (S.pin.length < 4) return;
-
-  const stored = localStorage.getItem('ph');
-
-  if (!stored) {
-    if (!S.isSettingPin) {
-      S.isSettingPin = true;
-      S.firstPinEntry = S.pin;
-      S.pin = '';
-      updateDots(0);
-      document.getElementById('pin-subtitle').textContent = 'Confirm your PIN';
-    } else {
-      if (S.pin === S.firstPinEntry) {
-        localStorage.setItem('ph', await sha256(S.pin));
-        await boot();
-      } else {
-        S.isSettingPin = false; S.firstPinEntry = ''; S.pin = '';
-        updateDots(0);
-        document.getElementById('pin-subtitle').textContent = "PINs didn't match — try again";
-        errorDots();
-      }
-    }
-    return;
-  }
-
-  if (await sha256(S.pin) === stored) {
-    await boot();
-  } else {
-    S.pin = ''; updateDots(0);
-    document.getElementById('pin-subtitle').textContent = 'Incorrect PIN';
-    errorDots();
-  }
-}
-
-function pinBack() {
-  if (S.pin.length) { S.pin = S.pin.slice(0, -1); updateDots(S.pin.length); }
-}
 
 /* ── Boot ─────────────────────────────────────────────────────────────── */
 async function boot() {
@@ -803,16 +739,6 @@ function renderSettingsCats() {
     </div>`).join('');
 }
 
-function resetPIN() {
-  if (!confirm('Reset your PIN? You\'ll need to create a new one.')) return;
-  localStorage.removeItem('ph');
-  S.pin = ''; S.isSettingPin = false; S.firstPinEntry = '';
-  updateDots(0);
-  document.getElementById('pin-subtitle').textContent = 'Create a new PIN';
-  closeSettings();
-  showScreen('screen-pin');
-}
-
 /* ── Category modal ───────────────────────────────────────────────────── */
 function openCategoryModal() {
   S.pickedEmoji = '📍'; S.pickedColor = '#FF6B6B';
@@ -856,16 +782,8 @@ function toast(msg) {
 
 /* ── Init ─────────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  if (!localStorage.getItem('ph'))
-    document.getElementById('pin-subtitle').textContent = 'Create a PIN to protect your places';
+  boot();
 
-  // Numpad
-  document.querySelectorAll('.num-btn[data-num]').forEach(b =>
-    b.addEventListener('click', () => onPinDigit(b.dataset.num))
-  );
-  document.getElementById('pin-delete').addEventListener('click', pinBack);
-
-  // Emoji/color pickers
   document.querySelectorAll('.emoji-opt').forEach(e =>
     e.addEventListener('click', () => {
       document.querySelectorAll('.emoji-opt').forEach(x => x.classList.remove('selected'));
@@ -879,17 +797,14 @@ document.addEventListener('DOMContentLoaded', () => {
     })
   );
 
-  // Close modal on backdrop tap
   document.getElementById('modal-cat').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeCategoryModal();
   });
 
-  // Search input
   document.getElementById('place-search-input').addEventListener('input', e => {
     onSearchInput(e.target.value.trim());
   });
 
-  // Online/offline feedback
   window.addEventListener('offline', () => toast('You\'re offline'));
   window.addEventListener('online',  () => toast('Back online'));
 });
